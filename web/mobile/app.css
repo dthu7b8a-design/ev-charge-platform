@@ -1,0 +1,383 @@
+:root {
+  color-scheme: dark;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+  background: #111315;
+  color: #edf1f5;
+  --blue: #2f6fed;
+  --green: #7ce38b;
+  --muted: #99a3ad;
+  --card: #1b1e21
+}
+
+* {
+  box-sizing: border-box
+}
+
+body {
+  margin: 0;
+  background: #111315
+}
+
+.screen {
+  max-width: 640px;
+  min-height: 100dvh;
+  margin: auto;
+  padding: calc(20px + env(safe-area-inset-top)) 18px calc(78px + env(safe-area-inset-bottom))
+}
+
+.hidden {
+  display: none !important
+}
+
+.login {
+  display: grid;
+  place-items: center
+}
+
+.login>div {
+  width: min(100%, 420px)
+}
+
+h1 {
+  font-size: 38px;
+  line-height: 1.08;
+  margin: 10px 0
+}
+
+.eyebrow {
+  color: var(--green);
+  font-weight: 800;
+  letter-spacing: .12em
+}
+
+p,
+small,
+.location {
+  color: var(--muted)
+}
+
+input {
+  width: 100%;
+  background: #202428;
+  border: 1px solid #343a40;
+  border-radius: 12px;
+  padding: 15px;
+  color: white;
+  font-size: 16px;
+  margin: 10px 0
+}
+
+button {
+  border: 0;
+  border-radius: 11px;
+  padding: 13px 16px;
+  background: var(--blue);
+  color: white;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer
+}
+
+button:disabled {
+  opacity: .35
+}
+
+.login button {
+  width: 100%;
+  margin-top: 8px
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px
+}
+
+header h2 {
+  margin: 3px 0;
+  font-size: 26px
+}
+
+.pill {
+  background: #183f2a;
+  color: var(--green);
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px
+}
+
+.view {
+  display: none
+}
+
+.view.active {
+  display: block
+}
+
+.location {
+  background: #1a1d20;
+  border: 1px solid #2b3035;
+  border-radius: 12px;
+  padding: 11px 13px;
+  margin-bottom: 12px
+}
+
+.cards {
+  display: grid;
+  gap: 12px
+}
+
+.card,
+.hero {
+  background: var(--card);
+  border: 1px solid #2b3035;
+  border-radius: 17px;
+  padding: 17px
+}
+
+.card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px
+}
+
+.card h3 {
+  margin: 2px 0 5px
+}
+
+.meta {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6
+}
+
+.price {
+  font-size: 22px;
+  font-weight: 800;
+  text-align: right
+}
+
+.free {
+  color: var(--green)
+}
+
+.hero h2 {
+  font-size: 31px;
+  margin: 7px 0
+}
+
+.actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px
+}
+
+.secondary {
+  background: #2a2e33
+}
+
+nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(640px, 100%);
+  height: calc(64px + env(safe-area-inset-bottom));
+  padding: 7px 14px env(safe-area-inset-bottom);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: rgba(20, 22, 24, .94);
+  backdrop-filter: blur(18px);
+  border-top: 1px solid #292e33
+}
+
+nav button {
+  background: transparent;
+  color: #8d97a1
+}
+
+nav button.active {
+  background: #273854;
+  color: white
+}
+
+label {
+  display: block;
+  margin: 18px 0 4px;
+  color: var(--muted)
+}
+
+.dashboard {
+  display: block;
+  color: #91b4ff;
+  text-decoration: none;
+  margin: 30px 4px
+}
+
+dialog {
+  width: min(610px, calc(100% - 22px));
+  max-height: 85dvh;
+  background: #15181b;
+  color: white;
+  border: 1px solid #30363c;
+  border-radius: 20px;
+  padding: 18px
+}
+
+dialog::backdrop {
+  background: #050607aa;
+  backdrop-filter: blur(4px)
+}
+
+.dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center
+}
+
+.dialog-head h3 {
+  font-size: 22px;
+  margin: 4px 0 15px
+}
+
+.icon {
+  background: #292e33;
+  border-radius: 50%;
+  font-size: 20px;
+  padding: 7px 12px
+}
+
+.pile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1e2226;
+  padding: 14px;
+  border-radius: 13px
+}
+
+.pile strong {
+  display: block
+}
+
+.pile button {
+  padding: 9px 14px
+}
+
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: 90px;
+  transform: translateX(-50%) translateY(30px);
+  opacity: 0;
+  background: #edf1f5;
+  color: #111;
+  padding: 10px 16px;
+  border-radius: 10px;
+  transition: .2s;
+  z-index: 10;
+  white-space: nowrap
+}
+
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0)
+}
+
+body {
+  background: radial-gradient(circle at 90% 0, #17243a 0, transparent 28%), #111315
+}
+
+input {
+  outline: none
+}
+
+input:focus {
+  border-color: #5e8ff2;
+  box-shadow: 0 0 0 3px #2f6fed33
+}
+
+button {
+  transition: transform .15s, filter .15s
+}
+
+button:active {
+  transform: scale(.98)
+}
+
+.preview {
+  background: #2c2416;
+  border: 1px solid #604c24;
+  color: #f0d99c;
+  border-radius: 13px;
+  padding: 12px 14px;
+  margin: 16px 0;
+  font-size: 13px;
+  line-height: 1.55
+}
+
+.preview strong {
+  color: #fff0bd
+}
+
+.location {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px
+}
+
+.compact {
+  padding: 8px 10px;
+  font-size: 12px;
+  white-space: nowrap
+}
+
+.card,
+.hero {
+  background: linear-gradient(145deg, #1d2125, #191c1f);
+  box-shadow: 0 12px 30px #0002
+}
+
+.danger {
+  width: 100%;
+  margin-top: 8px;
+  background: #42242a;
+  color: #ffc2cb
+}
+
+.route-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-bottom: 13px
+}
+
+.pile small {
+  display: block
+}
+
+.dashboard {
+  margin-bottom: 20px
+}
+
+@media(max-width:380px) {
+  h1 {
+    font-size: 32px
+  }
+
+  .card {
+    grid-template-columns: 1fr
+  }
+
+  .price {
+    text-align: left
+  }
+
+  .location {
+    align-items: flex-start;
+    flex-direction: column
+  }
+}

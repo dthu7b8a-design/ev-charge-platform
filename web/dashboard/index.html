@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>充电无忧 · ECharts 运营数据大屏</title>
+  <script src="./echarts.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+      background: #0c0f12;
+      color: #edf2f6
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 80% 0, #15233a 0, transparent 33%), #0c0f12
+    }
+
+    main {
+      padding: 28px;
+      max-width: 1500px;
+      margin: auto
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end
+    }
+
+    h1 {
+      font-size: 31px;
+      margin: 4px 0
+    }
+
+    small,
+    p {
+      color: #8e99a5
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin: 22px 0
+    }
+
+    .card {
+      background: #15191dee;
+      border: 1px solid #29313a;
+      border-radius: 17px;
+      padding: 18px;
+      box-shadow: 0 15px 35px #0002
+    }
+
+    .metric {
+      font-size: 31px;
+      font-weight: 800;
+      color: #7ce38b;
+      margin-top: 9px
+    }
+
+    .charts {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 14px
+    }
+
+    .chart {
+      height: 350px
+    }
+
+    .forecast {
+      grid-column: 1/3
+    }
+
+    .brand {
+      color: #7ce38b;
+      font-weight: 800;
+      letter-spacing: .12em
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #7ce38b;
+      margin-right: 7px
+    }
+
+    @media(max-width:800px) {
+      main {
+        padding: 18px
+      }
+
+      .grid {
+        grid-template-columns: repeat(2, 1fr)
+      }
+
+      .charts {
+        grid-template-columns: 1fr
+      }
+
+      .forecast {
+        grid-column: auto
+      }
+
+      .chart {
+        height: 300px
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <header>
+      <div><small class="brand">EV CHARGE OPERATIONS</small>
+        <h1>充电运营数据大屏</h1>
+      </div><small><span class="dot"></span><span id="time">正在连接</span></small>
+    </header>
+    <section class="grid">
+      <div class="card"><small>今日营收</small>
+        <div class="metric" id="today">—</div>
+      </div>
+      <div class="card"><small>本月营收</small>
+        <div class="metric" id="month">—</div>
+      </div>
+      <div class="card"><small>累计营收</small>
+        <div class="metric" id="total">—</div>
+      </div>
+      <div class="card"><small>在线资产</small>
+        <div class="metric" id="assets">—</div>
+      </div>
+    </section>
+    <section class="charts">
+      <div class="card">
+        <div id="sales" class="chart"></div>
+      </div>
+      <div class="card">
+        <div id="states" class="chart"></div>
+      </div>
+      <div class="card forecast">
+        <div id="forecast" class="chart"></div>
+      </div>
+    </section>
+    <p>数据每 30 秒刷新。预测特征：历史负荷、时段周期、星期/节假日和天气系数。</p>
+  </main>
+  <script>
+    let token = sessionStorage.adminToken || '';
+    const $ = s => document.querySelector(s);
+    const charts = {
+      sales: echarts.init($('#sales')),
+      states: echarts.init($('#states')),
+      forecast: echarts.init($('#forecast'))
+    };
+    const common = {
+      backgroundColor: 'transparent',
+      textStyle: {
+        color: '#dce3e9'
+      },
+      title: {
+        textStyle: {
+          color: '#edf2f6',
+          fontSize: 16
+        }
+      },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: '#20252b',
+        borderColor: '#39434d',
+        textStyle: {
+          color: '#fff'
+        }
+      },
+      grid: {
+        left: 45,
+        right: 22,
+        top: 60,
+        bottom: 40
+      }
+    };
+    async function api(path, method = 'GET', body) {
+      const response = await fetch(path, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? {
+            Authorization: `Bearer ${token}`
+          } : {})
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
+      const result = await response.json();
+      if (!result.ok) throw new Error(result.error);
+      return result.data
+    }
+    async function authorize() {
+      if (token) return;
+      const data = await api('/api/admin/login', 'POST', {
+        username: 'admin',
+        password: '123456'
+      });
+      token = data.token;
+      sessionStorage.adminToken = token
+    }
+
+    function renderSales(rows) {
+      charts.sales.setOption({
+        ...common,
+        title: {
+          text: '近 7 日营收趋势',
+          textStyle: common.title.textStyle
+        },
+        xAxis: {
+          type: 'category',
+          data: rows.map(x => x.date.slice(5)),
+          axisLine: {
+            lineStyle: {
+              color: '#46515c'
+            }
+          }
+        },
+        yAxis: {
+          type: 'value',
+          name: '元',
+          splitLine: {
+            lineStyle: {
+              color: '#242b32'
+            }
+          }
+        },
+        series: [{
+          type: 'bar',
+          data: rows.map(x => x.revenue),
+          barMaxWidth: 34,
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+              offset: 0,
+              color: '#78a4ff'
+            }, {
+              offset: 1,
+              color: '#2f6fed'
+            }]),
+            borderRadius: [7, 7, 2, 2]
+          }
+        }]
+      })
+    }
+
+    function renderStates(rows) {
+      const names = {
+        idle: '空闲',
+        reserved: '已预约',
+        charging: '充电中',
+        fault: '故障',
+        offline: '离线'
+      };
+      charts.states.setOption({
+        ...common,
+        title: {
+          text: '设备状态分布',
+          textStyle: common.title.textStyle
+        },
+        tooltip: {
+          trigger: 'item'
+        },
+        legend: {
+          bottom: 5,
+          textStyle: {
+            color: '#aab4bd'
+          }
+        },
+        series: [{
+          type: 'pie',
+          radius: ['42%', '68%'],
+          center: ['50%', '48%'],
+          label: {
+            color: '#dce3e9'
+          },
+          itemStyle: {
+            borderColor: '#15191d',
+            borderWidth: 3
+          },
+          data: rows.map(x => ({
+            name: names[x.status] || x.status,
+            value: x.count
+          }))
+        }]
+      })
+    }
+
+    function renderForecast(rows) {
+      charts.forecast.setOption({
+        ...common,
+        title: {
+          text: '未来 24 小时机器学习负荷预测',
+          textStyle: common.title.textStyle
+        },
+        xAxis: {
+          type: 'category',
+          data: rows.map(x => x.time.slice(11, 16)),
+          axisLine: {
+            lineStyle: {
+              color: '#46515c'
+            }
+          }
+        },
+        yAxis: {
+          type: 'value',
+          name: 'kWh',
+          splitLine: {
+            lineStyle: {
+              color: '#242b32'
+            }
+          }
+        },
+        series: [{
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          data: rows.map(x => x.predicted_kwh),
+          lineStyle: {
+            width: 3,
+            color: '#7ce38b'
+          },
+          itemStyle: {
+            color: '#7ce38b'
+          },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+              offset: 0,
+              color: '#7ce38b66'
+            }, {
+              offset: 1,
+              color: '#7ce38b05'
+            }])
+          }
+        }]
+      })
+    }
+    async function load() {
+      try {
+        await authorize();
+        const [summary, sales, states, forecast] = await Promise.all([api('/api/admin/summary'),
+          api('/api/admin/sales?days=7'), api('/api/admin/pile-distribution'), api(
+            '/api/admin/forecast?hours=24')
+        ]);
+        $('#today').textContent = '¥' + summary.today_revenue.toFixed(2);
+        $('#month').textContent = '¥' + summary.month_revenue.toFixed(2);
+        $('#total').textContent = '¥' + summary.total_revenue.toFixed(2);
+        $('#assets').textContent = `${summary.idle_piles}/${summary.piles} 空闲`;
+        renderSales(sales);
+        renderStates(states);
+        renderForecast(forecast)
+      } catch (error) {
+        $('#time').textContent = '连接失败：' + error.message
+      }
+    }
+    setInterval(() => $('#time').textContent = new Date().toLocaleString(), 1000);
+    setInterval(load, 30000);
+    addEventListener('resize', () => Object.values(charts).forEach(x => x.resize()));
+    load();
+  </script>
+</body>
+
+</html>

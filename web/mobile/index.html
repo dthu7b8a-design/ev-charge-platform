@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111315">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="./app.css">
+  <title>充电无忧</title>
+</head>
+
+<body>
+  <main id="login" class="screen login">
+    <div><span class="eyebrow">EV CHARGE</span>
+      <h1>充电，从容一点。</h1>
+      <p>输入手机号即可登录，首次使用自动注册。</p>
+      <aside id="previewNotice" class="preview hidden">当前是本地界面预览。完整登录、地图和订单功能请先启动服务，再访问
+        <strong>http://虚拟机IP:8080/mobile/</strong>。</aside><input id="phone" inputmode="numeric"
+        maxlength="11" value="13800138001" placeholder="11 位手机号"><button id="loginBtn">登录 /
+        自动注册</button>
+    </div>
+  </main>
+  <main id="app" class="screen hidden">
+    <header>
+      <div><small id="hello">欢迎回来</small>
+        <h2 id="pageTitle">附近充电站</h2>
+      </div><span id="network" class="pill">在线</span>
+    </header>
+    <section id="stations" class="view active">
+      <div class="location"><span id="locationText">⌖ 深圳市民中心 · 模拟定位</span><button id="locateBtn"
+          class="compact">使用手机定位</button></div>
+      <div id="stationList" class="cards"></div>
+    </section>
+    <section id="order" class="view">
+      <article class="hero"><small>当前订单</small>
+        <h2 id="orderState">暂无进行中订单</h2>
+        <p id="orderInfo">预约后，可在这里完成充电与结算。</p>
+      </article>
+      <div class="actions"><button id="startBtn">开始充电</button><button
+          id="stopBtn">结束充电</button><button id="settleBtn">钱包结算</button><button id="cancelBtn"
+          class="secondary">取消预约</button></div>
+    </section>
+    <section id="profile" class="view">
+      <article class="hero"><small>账户余额</small>
+        <h2 id="balance">¥ 0.00</h2><button id="rechargeBtn">充值 50 元</button>
+      </article><label>昵称<input id="nickname"></label><button id="saveProfile"
+        class="secondary">保存资料</button><a class="dashboard" href="../dashboard/">打开运营数据大屏
+        →</a><button id="logoutBtn" class="danger">退出登录</button>
+    </section>
+    <nav><button data-view="stations" class="active">找桩</button><button
+        data-view="order">订单</button><button data-view="profile">我的</button></nav>
+  </main>
+  <dialog id="pileDialog">
+    <div class="dialog-head">
+      <div><small id="stationAddress"></small>
+        <h3 id="stationName"></h3>
+      </div><button id="closeDialog" class="icon">×</button>
+    </div>
+    <div class="route-actions"><button id="driveBtn" class="secondary">驾车导航</button><button
+        id="walkBtn" class="secondary">步行导航</button></div>
+    <div id="pileList" class="cards"></div>
+  </dialog>
+  <div id="toast"></div>
+  <script src="./app.js"></script>
+</body>
+
+</html>
