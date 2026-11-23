@@ -4,7 +4,7 @@
 #
 # 用法：
 #   bash setup_env.sh              # 安装必需依赖
-#   bash setup_env.sh --with-node  # 额外安装 nodejs（大屏语法检查用，可选）
+#   bash setup_env.sh --with-node  # 额外安装 nodejs（手机 PWA 脚本语法检查用，可选）
 #
 # 设计原则：
 #   1. 装之前先用 apt-cache 逐个校验包名，绝不把不存在的包名丢给 apt install

@@ -97,7 +97,6 @@ QWidget *AdminWindow::buildConsole() {
     tabs->addTab(buildStations(), QStringLiteral("充电站"));
     tabs->addTab(buildUsers(), QStringLiteral("用户"));
     tabs->addTab(buildOrders(), QStringLiteral("订单"));
-    tabs->addTab(buildForecast(), QStringLiteral("负荷预测"));
     bool ok = false;
     const int startTab = qEnvironmentVariable("EVCHARGE_START_TAB").toInt(&ok);
     if (ok && startTab >= 0 && startTab < tabs->count())
@@ -316,30 +315,6 @@ QWidget *AdminWindow::buildOrders() {
     l->addWidget(m_orders);
     return w;
 }
-QWidget *AdminWindow::buildForecast() {
-    auto *w = new QWidget;
-    auto *l = new QVBoxLayout(w);
-    l->setContentsMargins(24, 20, 24, 20);
-    auto *h = new QHBoxLayout;
-    h->addWidget(heading(QStringLiteral("机器学习负荷预测")));
-    h->addStretch();
-    for (const int hours : {1, 6, 24}) {
-        auto *b = new QPushButton(QStringLiteral("未来 %1 小时").arg(hours));
-        h->addWidget(b);
-        connect(b, &QPushButton::clicked, this, [this, hours]() { loadForecast(hours); });
-    }
-    l->addLayout(h);
-    auto *s = new QLabel(QStringLiteral(
-        "特征：历史能耗、小时周期、星期/节假日、天气系数；模型在服务端线程池训练与推理。"));
-    s->setObjectName(QStringLiteral("Subtitle"));
-    l->addWidget(s);
-    m_forecastWarning = new QLabel(QStringLiteral("正在计算负荷预警…"));
-    m_forecastWarning->setObjectName(QStringLiteral("Metric"));
-    l->addWidget(m_forecastWarning);
-    m_forecastChart = new QChartView;
-    l->addWidget(m_forecastChart, 1);
-    return w;
-}
 void AdminWindow::login() {
     m_api.post(QStringLiteral("/api/admin/login"),
                {{QStringLiteral("username"), m_username->text()},
@@ -361,7 +336,6 @@ void AdminWindow::refreshAll() {
     loadStations();
     loadUsers();
     loadOrders();
-    loadForecast();
 }
 void AdminWindow::loadOverview(int days) {
     m_api.get(QStringLiteral("/api/admin/summary"), [this](auto r) {
@@ -549,34 +523,6 @@ void AdminWindow::loadOrders() {
                    QStringLiteral("status"), QStringLiteral("duration_minutes"),
                    QStringLiteral("energy_kwh"), QStringLiteral("amount"),
                    QStringLiteral("reserved_at"), QStringLiteral("settled_at")});
-    });
-}
-void AdminWindow::loadForecast(int hours) {
-    m_api.get(QStringLiteral("/api/admin/forecast?hours=%1").arg(hours), [this](auto r) {
-        auto *chart = new QChart;
-        chart->setTitle(QStringLiteral("预测总负荷（kWh）"));
-        auto *s = new QLineSeries;
-        const auto rows = r.value(QStringLiteral("data")).toArray();
-        QString peakTime;
-        int minimumFree = 9999;
-        for (int i = 0; i < rows.size(); ++i) {
-            const auto item = rows.at(i).toObject();
-            s->append(i, item.value(QStringLiteral("predicted_kwh")).toDouble());
-            minimumFree =
-                qMin(minimumFree, item.value(QStringLiteral("predicted_free_piles")).toInt());
-            if (peakTime.isEmpty() && item.value(QStringLiteral("peak")).toBool())
-                peakTime = item.value(QStringLiteral("time")).toString().mid(11, 5);
-        }
-        m_forecastWarning->setText(
-            peakTime.isEmpty() ? QStringLiteral("负荷平稳 · 预计最少 %1 个空闲桩").arg(minimumFree)
-                               : QStringLiteral("负荷预警 · %1 左右预计达峰 · 最少 %2 个空闲桩")
-                                     .arg(peakTime)
-                                     .arg(minimumFree));
-        chart->addSeries(s);
-        chart->createDefaultAxes();
-        chart->setTheme(QChart::ChartThemeDark);
-        chart->legend()->hide();
-        m_forecastChart->setChart(chart);
     });
 }
 void AdminWindow::fillTable(QTableWidget *t, const QJsonArray &rows, const QStringList &keys) {

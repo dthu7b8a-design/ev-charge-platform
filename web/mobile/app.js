@@ -67,10 +67,9 @@ async function loadStations() {
     <article class="card" data-id="${station.id}" data-name="${station.name}"
       data-address="${station.address}" data-latitude="${station.latitude}"
       data-longitude="${station.longitude}">
-      <div><h3>${station.recommended ? '★ ' : ''}${station.name}</h3>
+      <div><h3>${station.name}</h3>
         <div class="meta">${station.address}<br>
           <span class="free">${station.free_count} 个空闲</span> / ${station.pile_count} 个 · ${station.distance_km} km
-          <br>预测空闲 ${station.predicted_free_piles ?? '—'} 个
         </div>
       </div>
       <div class="price">¥${Number(station.price).toFixed(2)}<div class="meta">/kWh</div></div>

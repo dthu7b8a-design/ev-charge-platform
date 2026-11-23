@@ -209,13 +209,6 @@ label {
   color: var(--muted)
 }
 
-.dashboard {
-  display: block;
-  color: #91b4ff;
-  text-decoration: none;
-  margin: 30px 4px
-}
-
 dialog {
   width: min(610px, calc(100% - 22px));
   max-height: 85dvh;
@@ -357,10 +350,6 @@ button:active {
 
 .pile small {
   display: block
-}
-
-.dashboard {
-  margin-bottom: 20px
 }
 
 @media(max-width:380px) {

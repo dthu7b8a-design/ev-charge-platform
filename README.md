@@ -1,6 +1,6 @@
 # 东软电动汽车充电桩应用管理平台
 
-本目录是 Ubuntu 项目的源码与答辩材料根目录。项目严格采用课程指定的 Qt 6/C++、SQLite、Socket、多线程、Qt Charts 与 QWebEngine 技术。
+本目录为第一阶段最终源码副本，采用 Qt 6/C++、SQLite、Socket、Qt Charts 与 QWebEngine。保留用户端、管理端运营概览和管理业务、服务端接口及手机 PWA。
 
 ## qmake 构建与启动
 
@@ -16,8 +16,6 @@ chmod +x scripts/*.sh
 
 - Qt 用户端和管理员端会直接显示在 Ubuntu 桌面。
 - 手机端/PWA：`http://虚拟机IP:8080`
-- Web 运营大屏：`http://虚拟机IP:8080/dashboard`
 - 用户演示手机号：`13800138001`
 - 管理员账号：`admin`，密码：`123456`
-
 

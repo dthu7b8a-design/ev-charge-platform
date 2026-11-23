@@ -10,7 +10,7 @@
 bash
 chmod +x setup\_env.sh
 bash setup\_env.sh                # 安装必需依赖
-bash setup\_env.sh --with-node    # 额外装 nodejs（大屏语法检查用，可选）
+bash setup\_env.sh --with-node    # 额外装 nodejs（手机 PWA 脚本语法检查用，可选）
 
 
 也可以手工执行等价命令：
@@ -30,8 +30,7 @@ sudo apt install -y
   python3
 
 
-可选（仅用于 `tests/check\_dashboard\_syntax.js` 大屏语法检查，缺失时 `test\_all.sh` 会自动跳过）：
+可选（用于手机 PWA 脚本的 `node --check web/mobile/app.js` 与 `node --check web/mobile/sw.js` 语法检查）：
 
 bash
 sudo apt install -y nodejs
-

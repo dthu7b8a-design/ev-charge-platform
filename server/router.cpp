@@ -1,9 +1,9 @@
 #include "router.h"
 
 #include "database.h"
-#include "forecastservice.h"
 
-#include <QtConcurrent>
+#include <algorithm>
+#include <utility>
 #include <QDateTime>
 #include <QFile>
 #include <QFileInfo>
@@ -15,8 +15,10 @@
 #include <QRandomGenerator>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QStringList>
 #include <QUrl>
 #include <QUuid>
+#include <QVector>
 #include <QtMath>
 
 namespace {
@@ -110,8 +112,6 @@ ApiResponse Router::staticFile(const QString &requested) const {
     if (path == QStringLiteral("/") || path == QStringLiteral("/mobile") ||
         path == QStringLiteral("/mobile/"))
         path = QStringLiteral("/mobile/index.html");
-    if (path == QStringLiteral("/dashboard") || path == QStringLiteral("/dashboard/"))
-        path = QStringLiteral("/dashboard/index.html");
     path = QUrl::fromPercentEncoding(path.toUtf8());
     if (path.contains(QStringLiteral("..")))
         return fail(QStringLiteral("非法路径"), 403);
@@ -209,8 +209,6 @@ ApiResponse Router::dispatch(const ApiRequest &r) {
         if (!error.isEmpty())
             return fail(error, 500);
         QVector<QJsonObject> sorted;
-        int recommendedId = 0;
-        double bestRecommendationScore = -1e9;
         for (int i = 0; i < rows.size(); ++i) {
             QJsonObject station = rows.at(i).toObject();
             const double distance =
@@ -218,25 +216,7 @@ ApiResponse Router::dispatch(const ApiRequest &r) {
                                   station.value(QStringLiteral("longitude")).toDouble()) *
                        10.0) /
                 10.0;
-            QSqlQuery load(db);
-            load.prepare(QStringLiteral(
-                "SELECT AVG(energy_kwh) FROM hourly_load WHERE station_id=? AND strftime('%H',ts)=?"));
-            load.addBindValue(station.value(QStringLiteral("id")).toInt());
-            load.addBindValue(
-                QDateTime::currentDateTime().addSecs(3600).toString(QStringLiteral("hh")));
-            load.exec();
-            load.next();
-            const double predictedLoad = qRound(load.value(0).toDouble() * 10.0) / 10.0;
-            const int pileCount = station.value(QStringLiteral("pile_count")).toInt();
-            const int predictedFree = qMax(0, pileCount - qCeil(predictedLoad / 30.0));
-            const double score = predictedFree * 10.0 - distance;
-            if (score > bestRecommendationScore) {
-                bestRecommendationScore = score;
-                recommendedId = station.value(QStringLiteral("id")).toInt();
-            }
             station.insert(QStringLiteral("distance_km"), distance);
-            station.insert(QStringLiteral("predicted_load_kwh"), predictedLoad);
-            station.insert(QStringLiteral("predicted_free_piles"), predictedFree);
             sorted.append(station);
         }
         std::sort(sorted.begin(), sorted.end(), [](const QJsonObject &a, const QJsonObject &b) {
@@ -244,11 +224,8 @@ ApiResponse Router::dispatch(const ApiRequest &r) {
                    b.value(QStringLiteral("distance_km")).toDouble();
         });
         rows = QJsonArray();
-        for (QJsonObject station : sorted) {
-            station.insert(QStringLiteral("recommended"),
-                           station.value(QStringLiteral("id")).toInt() == recommendedId);
+        for (const QJsonObject &station : sorted)
             rows.append(station);
-        }
         return json(okObject(rows));
     }
 
@@ -683,58 +660,6 @@ ApiResponse Router::dispatch(const ApiRequest &r) {
             QString e;
             auto rows = Database::queryRows(q, &e);
             return e.isEmpty() ? json(okObject(rows)) : fail(e, 500);
-        }
-        if (r.method == QStringLiteral("GET") && r.path == QStringLiteral("/api/admin/forecast")) {
-            const int hours =
-                qBound(1, r.query.value(QStringLiteral("hours"), QStringLiteral("24")).toInt(), 24);
-            const int sid =
-                r.query.value(QStringLiteral("station_id"), QStringLiteral("0")).toInt();
-            QSqlQuery q(db);
-            if (sid > 0) {
-                q.prepare(QStringLiteral(
-                    "SELECT ts,energy_kwh,weather,is_holiday FROM hourly_load WHERE station_id=? ORDER BY ts DESC LIMIT 720"));
-                q.addBindValue(sid);
-                q.exec();
-            } else
-                q.exec(QStringLiteral(
-                    "SELECT ts,SUM(energy_kwh),AVG(weather),MAX(is_holiday) FROM hourly_load GROUP BY ts ORDER BY ts DESC LIMIT 720"));
-            QVector<ForecastService::Sample> samples;
-            while (q.next()) {
-                const QDateTime at = QDateTime::fromString(q.value(0).toString(), Qt::ISODate);
-                samples.append({at.time().hour(), at.date().dayOfWeek() - 1, q.value(3).toInt(),
-                                q.value(2).toDouble(), q.value(1).toDouble()});
-            }
-            auto future = QtConcurrent::run(
-                [samples, hours]() { return ForecastService::predict(samples, hours); });
-            QJsonArray forecast = future.result();
-            QSqlQuery count(db);
-            if (sid > 0) {
-                count.prepare(QStringLiteral("SELECT COUNT(*) FROM piles WHERE station_id=?"));
-                count.addBindValue(sid);
-                count.exec();
-            } else
-                count.exec(QStringLiteral("SELECT COUNT(*) FROM piles"));
-            count.next();
-            const int pileCount = count.value(0).toInt();
-            double mean = 0;
-            for (const auto &value : forecast)
-                mean += value.toObject().value(QStringLiteral("predicted_kwh")).toDouble();
-            mean /= qMax(1, forecast.size());
-            for (int i = 0; i < forecast.size(); ++i) {
-                QJsonObject item = forecast.at(i).toObject();
-                const double load = item.value(QStringLiteral("predicted_kwh")).toDouble();
-                const int freePiles = qMax(0, pileCount - qCeil(load / 30.0));
-                item.insert(QStringLiteral("predicted_free_piles"), freePiles);
-                item.insert(QStringLiteral("peak"), load > mean * 1.08);
-                item.insert(QStringLiteral("congestion"),
-                            freePiles < pileCount * 0.2
-                                ? QStringLiteral("high")
-                                : (freePiles < pileCount * 0.5 ? QStringLiteral("medium")
-                                                               : QStringLiteral("low")));
-                item.insert(QStringLiteral("station_id"), sid);
-                forecast.replace(i, item);
-            }
-            return json(okObject(forecast));
         }
     }
 

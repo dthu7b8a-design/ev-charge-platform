@@ -15,4 +15,3 @@ fi
 
 echo "Qt 用户端与管理端已启动。"
 echo "手机/PWA：http://$(hostname -I | awk '{print $1}'):8080"
-echo "运营大屏：http://$(hostname -I | awk '{print $1}'):8080/dashboard"

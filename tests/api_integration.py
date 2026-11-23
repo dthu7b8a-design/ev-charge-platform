@@ -52,7 +52,7 @@ check("已注册手机号直接登录", not login_again["created"])
 stations = request("/api/stations?lat=22.5431&lon=114.0579")["data"]
 check("附近充电站完整返回", len(stations) >= 6 and all("distance_km" in row for row in stations))
 check("充电站按距离排序", [x["distance_km"] for x in stations] == sorted(x["distance_km"] for x in stations))
-check("预测空闲桩与智能推荐", sum(1 for x in stations if x["recommended"]) == 1 and all("predicted_free_piles" in x for x in stations))
+check("实时空闲桩与总桩数", all(0 <= x["free_count"] <= x["pile_count"] for x in stations))
 
 piles = request(f"/api/stations/{stations[0]['id']}/piles")["data"]
 idle = next(row for row in piles if row["status"] == "idle")
@@ -129,12 +129,6 @@ check("冻结后已有会话立即失效", frozen_session["code"] == "unauthoriz
 request(f"/api/admin/users/{user_id}/status", "PATCH", {"status": "normal"}, admin_token)
 check("解冻用户", request("/api/auth/phone", "POST", {"phone": phone})["ok"])
 
-for horizon in (1, 6, 24):
-    forecast = request(f"/api/admin/forecast?hours={horizon}", token=admin_token)["data"]
-    check(f"未来 {horizon} 小时负荷预测", len(forecast) == horizon and all(x["predicted_kwh"] >= 0 and x["predicted_free_piles"] >= 0 and x["congestion"] in ("low", "medium", "high") for x in forecast))
-station_forecast = request(f"/api/admin/forecast?hours=6&station_id={stations[0]['id']}", token=admin_token)["data"]
-check("分站点负荷与空闲桩预测", len(station_forecast) == 6 and all(x["station_id"] == stations[0]["id"] for x in station_forecast))
-
 parsed_base = urllib.parse.urlparse(BASE)
 with socket.create_connection((parsed_base.hostname, parsed_base.port), timeout=8) as connection:
     connection.sendall(b"POST /api/auth/phone HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 1048577\r\n\r\n")
@@ -145,15 +139,11 @@ mobile = urllib.request.urlopen(BASE + "/", timeout=8).read().decode("utf-8")
 mobile_directory = urllib.request.urlopen(BASE + "/mobile/", timeout=8).read().decode("utf-8")
 mobile_js = urllib.request.urlopen(BASE + "/mobile/app.js", timeout=8).read().decode("utf-8")
 mobile_entry = urllib.request.urlopen(BASE + "/mobile.html", timeout=8).read().decode("utf-8")
-dashboard = urllib.request.urlopen(BASE + "/dashboard", timeout=8).read().decode("utf-8")
-echarts_bundle = urllib.request.urlopen(BASE + "/dashboard/echarts.min.js", timeout=8).read()
 check("Android/iOS PWA 页面", "apple-mobile-web-app-capable" in mobile and "manifest" in mobile)
 check("手机端目录地址可访问", "loginBtn" in mobile_directory)
 check("手机端登录与退出", "loginBtn" in mobile and "logoutBtn" in mobile and "sessionStorage.evChargeToken" in mobile_js and "localStorage" not in mobile_js)
 check("手机定位和腾讯路线导航", "navigator.geolocation" in mobile_js and "apis.map.qq.com/uri/v1/routeplan" in mobile_js)
 check("mobile.html 便捷入口", "mobile/index.html" in mobile_entry)
 check("本地文件相对资源路径", 'href="./app.css"' in mobile and 'src="./app.js"' in mobile)
-check("ECharts Web 运营数据大屏", "运营数据大屏" in dashboard and "echarts.init" in dashboard)
-check("ECharts 本地离线资源", len(echarts_bundle) > 500_000 and b"Apache Software Foundation" in echarts_bundle[:1000])
 
 print(f"ALL PASS: {passed} checks")
