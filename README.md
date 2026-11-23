@@ -51,14 +51,14 @@ docs/                   复现、技术档案和验证记录
 目标：**Ubuntu22.04 x86_64、Qt6.2.4、GCC11、qmake6、SQLite3、Python3**。桌面需要图形会话；WSL2需可用WSLg。Windows原生Qt构建未作为本轮验收目标。
 
 ```bash
-git clone --branch cleanup/evcharge-audit-20261123 https://github.com/dthu7b8a-design/ev-charge-platform.git
+git clone https://github.com/dthu7b8a-design/ev-charge-platform.git
 cd ev-charge-platform
 bash setup_env.sh
 bash scripts/build_qmake.sh
 bash scripts/run_demo.sh
 ```
 
-整理版已推送到`cleanup/evcharge-audit-20261123`，见[PR #1](https://github.com/dthu7b8a-design/ev-charge-platform/pull/1)；尚未合并main，上述命令显式检出整理分支。
+本整理通过[PR #1](https://github.com/dthu7b8a-design/ev-charge-platform/pull/1)交付；上述命令按main克隆。需要固定分支时可检出`cleanup/evcharge-audit-20261123`，当前合并状态以PR页面为准。
 
 桌面默认连接本机8080，手机入口为 **`http://主机IP:8080/mobile/`**。演示手机号 `13800138001`；管理员 `admin / 123456`，仅用于隔离演示。
 
