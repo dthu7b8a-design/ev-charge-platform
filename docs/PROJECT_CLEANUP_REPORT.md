@@ -14,6 +14,14 @@
 
 保留server/shared/user/admin/web/scripts/tests的原模块结构，新建有实际内容的docs和assets。没有机械迁移src、改公共接口或重写数据库。
 
+```text
+整理前：EVChargePlatform.pro + server/shared/user/admin/web/scripts/tests
+        README.md + ENVIRONMENT.md + setup_env.sh
+整理后：以上原模块保留；新增.gitignore/.gitattributes
+        docs/（复现、技术档案、成果索引、验证、整理报告）
+        docs/assets/（真实截图）及docs/validation/（验证摘要）
+```
+
 | 处理 | 文件/范围 | 原因 |
 |---|---|---|
 | 保留 | 核心源码、测试、.pro、手机入口、初始化数据 | 运行/复现需要 |
@@ -34,13 +42,13 @@
 
 ## 4. 验证与质量
 
-实际构建、红绿回归、69API/27守卫、SQLite、启停、失败分支和截图详见 [VALIDATION](VALIDATION.md)。干净克隆结果在最终收尾记录，不以已有构建产物代替。
+实际构建、红绿回归、69API/27守卫、SQLite、启停、失败分支和截图详见 [VALIDATION](VALIDATION.md)。工程提交的独立新clone也已重新构建并通过69/27和SQLite，未依赖已有构建产物。
 
 完整性：核心源码和原工作得到保护；结构：原分层保留；文档：主页/复现/技术档案/成果索引齐备；运行：目标Ubuntu本轮验证；局限：仍为模拟系统，真实手机/地图/生产安全不作通过承诺。申请与面试价值在可解释架构、HTTP/公共层/构建及真实排查，不冒充算法创新。
 
 ## 5. Git交付和回滚
 
-工程提交SHA及最终HEAD在本地交付清单记录；可在整理副本执行`git rev-parse HEAD`核对。独立新克隆验收后，报告会补写对应工程SHA。
+整理后工程提交为`13708685da19a1a733284d2e0ce9cfd6fcc943c2`，独立克隆测试基于此SHA。最后补充验证摘要的文档提交另记录在本地交付清单，可执行`git rev-parse HEAD`核对最终HEAD；工程测试后仅补文档/摘要，没有再改运行代码。
 
 原main和原工作区未变，可直接回到原目录继续；完整备份在共同维护目录backups/evchargeplatform，bundle保留历史。回退整理副本时优先创建新检出；不要对有后续个人工作的目录执行reset --hard或clean。
 

@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-23",
+  "engineering_commit": "13708685da19a1a733284d2e0ce9cfd6fcc943c2",
+  "clean_clone_passed": true,
+  "api_checks": 69,
+  "ui_source_guards": 27,
+  "sqlite_integrity": "ok",
+  "sqlite_foreign_key_violations": 0,
+  "script_failure_checks": 5,
+  "native_ui_screenshots": true,
+  "known_limits": [
+    "Mobile PWA install/offline not validated",
+    "Real charger/payment/SMS absent by design",
+    "Native Windows Qt build not tested"
+  ]
+}
