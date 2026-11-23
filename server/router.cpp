@@ -112,6 +112,9 @@ ApiResponse Router::staticFile(const QString &requested) const {
     if (path == QStringLiteral("/") || path == QStringLiteral("/mobile") ||
         path == QStringLiteral("/mobile/"))
         path = QStringLiteral("/mobile/index.html");
+    if (path == QStringLiteral("/app.css") || path == QStringLiteral("/app.js") ||
+        path == QStringLiteral("/manifest.json") || path == QStringLiteral("/sw.js"))
+        path = QStringLiteral("/mobile") + path;
     path = QUrl::fromPercentEncoding(path.toUtf8());
     if (path.contains(QStringLiteral("..")))
         return fail(QStringLiteral("非法路径"), 403);
@@ -600,12 +603,12 @@ ApiResponse Router::dispatch(const ApiRequest &r) {
         if (r.method == QStringLiteral("POST") && restartId > 0) {
             QSqlQuery q(db);
             q.prepare(QStringLiteral(
-                "UPDATE piles SET status='idle',last_restart_at=? WHERE id=? AND status!='charging'"));
+                "UPDATE piles SET status='idle',last_restart_at=? WHERE id=? AND status NOT IN ('charging','reserved')"));
             q.addBindValue(isoNow());
             q.addBindValue(restartId);
             q.exec();
             if (q.numRowsAffected() != 1)
-                return fail(QStringLiteral("充电中的设备不可重启"), 409);
+                return fail(QStringLiteral("预约或充电中的设备不可重启"), 409);
             audit(QStringLiteral("admin"), aid, QStringLiteral("pile.restart"),
                   QString::number(restartId));
             return json(okObject());
@@ -620,12 +623,12 @@ ApiResponse Router::dispatch(const ApiRequest &r) {
                 return fail(QStringLiteral("非法设备状态"), 422);
             QSqlQuery q(db);
             q.prepare(
-                QStringLiteral("UPDATE piles SET status=? WHERE id=? AND status!='charging'"));
+                QStringLiteral("UPDATE piles SET status=? WHERE id=? AND status NOT IN ('charging','reserved')"));
             q.addBindValue(status);
             q.addBindValue(pileStatusId);
             q.exec();
             return q.numRowsAffected() == 1 ? json(okObject())
-                                            : fail(QStringLiteral("状态更新失败"), 409);
+                                            : fail(QStringLiteral("预约或充电中的设备不可修改状态"), 409);
         }
         if (r.method == QStringLiteral("GET") && r.path == QStringLiteral("/api/admin/users")) {
             const QString search = r.query.value(QStringLiteral("search"));

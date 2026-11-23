@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BUILD_ROOT="${PROJECT_ROOT}/build-qmake"
+BUILD_ROOT="${EVCHARGE_BUILD_DIR:-${PROJECT_ROOT}/build-qmake}"
 
 mkdir -p "$BUILD_ROOT"
 cd "$BUILD_ROOT"

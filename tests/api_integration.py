@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 import json
+import re
 import socket
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+from html.parser import HTMLParser
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:18080"
 passed = 0
@@ -129,6 +131,33 @@ check("冻结后已有会话立即失效", frozen_session["code"] == "unauthoriz
 request(f"/api/admin/users/{user_id}/status", "PATCH", {"status": "normal"}, admin_token)
 check("解冻用户", request("/api/auth/phone", "POST", {"phone": phone})["ok"])
 
+second_token = request("/api/auth/phone", "POST", {"phone": "13900009992"})["data"]["token"]
+guard_pile = next(row for row in request("/api/admin/piles", token=admin_token)["data"]
+                  if row["status"] == "idle")
+guard_order = request("/api/orders/reserve", "POST", {"pile_id": guard_pile["id"]}, user_token, 201)["data"]["order_id"]
+for operation, method, suffix, body in (
+    ("重启", "POST", "restart", {}),
+    ("设为空闲", "PATCH", "status", {"status": "idle"}),
+    ("设为故障", "PATCH", "status", {"status": "fault"}),
+    ("设为离线", "PATCH", "status", {"status": "offline"}),
+):
+    blocked = request(f"/api/admin/piles/{guard_pile['id']}/{suffix}", method, body, admin_token, 409)
+    check(f"预约中的电桩不可{operation}", not blocked["ok"])
+    competing = request("/api/orders/reserve", "POST", {"pile_id": guard_pile["id"]}, second_token, 409)
+    check(f"{operation}失败后其他用户仍不可重复预约", competing["code"] == "pile_unavailable")
+check("管理操作未改变原预约", request("/api/orders/active", token=user_token)["data"][0]["id"] == guard_order)
+request(f"/api/orders/{guard_order}/cancel", "POST", {}, user_token)
+request(f"/api/admin/piles/{guard_pile['id']}/restart", "POST", {}, admin_token)
+check("取消预约后可正常重启电桩", True)
+for status in ("fault", "offline", "idle"):
+    request(f"/api/admin/piles/{guard_pile['id']}/status", "PATCH", {"status": status}, admin_token)
+    changed_pile = next(row for row in request("/api/admin/piles", token=admin_token)["data"]
+                        if row["id"] == guard_pile["id"])
+    check(f"取消预约后可设为{status}", changed_pile["status"] == status)
+second_order = request("/api/orders/reserve", "POST", {"pile_id": guard_pile["id"]}, second_token, 201)["data"]["order_id"]
+check("取消预约后其他用户可正常预约", second_order != guard_order)
+request(f"/api/orders/{second_order}/cancel", "POST", {}, second_token)
+
 parsed_base = urllib.parse.urlparse(BASE)
 with socket.create_connection((parsed_base.hostname, parsed_base.port), timeout=8) as connection:
     connection.sendall(b"POST /api/auth/phone HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 1048577\r\n\r\n")
@@ -145,5 +174,48 @@ check("手机端登录与退出", "loginBtn" in mobile and "logoutBtn" in mobile
 check("手机定位和腾讯路线导航", "navigator.geolocation" in mobile_js and "apis.map.qq.com/uri/v1/routeplan" in mobile_js)
 check("mobile.html 便捷入口", "mobile/index.html" in mobile_entry)
 check("本地文件相对资源路径", 'href="./app.css"' in mobile and 'src="./app.js"' in mobile)
+
+
+class MobileResources(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.paths = {}
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "link" and attrs.get("rel") in ("stylesheet", "manifest"):
+            self.paths[attrs["rel"]] = attrs["href"]
+        if tag == "script" and attrs.get("src"):
+            self.paths["script"] = attrs["src"]
+
+
+for entry in ("/", "/mobile", "/mobile/"):
+    page_url = BASE + entry
+    parser = MobileResources()
+    parser.feed(urllib.request.urlopen(page_url, timeout=8).read().decode("utf-8"))
+    check(f"{entry} 手机资源声明完整", set(parser.paths) == {"stylesheet", "manifest", "script"})
+    resources = {}
+    for kind, accepted_types in (
+        ("stylesheet", {"text/css"}),
+        ("script", {"application/javascript", "text/javascript"}),
+        ("manifest", {"application/json", "application/manifest+json"}),
+    ):
+        url = urllib.parse.urljoin(page_url, parser.paths[kind])
+        with urllib.request.urlopen(url, timeout=8) as response:
+            resources[kind] = response.read().decode("utf-8")
+            check(f"{entry} 实际加载 {kind}", response.status == 200 and bool(resources[kind])
+                  and response.headers.get_content_type() in accepted_types)
+    manifest = json.loads(resources["manifest"])
+    check(f"{entry} PWA 启动路径与作用域", manifest["start_url"] == "/mobile/"
+          and manifest["scope"] == "/mobile/")
+    registration = re.search(r"serviceWorker\.register\(['\"]([^'\"]+)['\"]", resources["script"])
+    if not registration:
+        raise AssertionError(f"{entry} 缺少 Service Worker 注册")
+    worker_url = urllib.parse.urljoin(page_url, registration.group(1))
+    with urllib.request.urlopen(worker_url, timeout=8) as response:
+        worker = response.read().decode("utf-8")
+        check(f"{entry} 实际加载 Service Worker", response.status == 200
+              and "self.addEventListener" in worker
+              and urllib.parse.urlparse(worker_url).path == "/mobile/sw.js")
 
 print(f"ALL PASS: {passed} checks")

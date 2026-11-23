@@ -11,7 +11,7 @@
 #   2. 对历史上改过名的包提供候选回退（如 charts：libqt6charts6-dev / qt6-charts-dev）
 #   3. 装完逐项验证，明确指出哪一项没到位、会导致什么症状
 # ---------------------------------------------------------------------------
-set -uo pipefail
+set -euo pipefail
 
 WITH_NODE=0
 [ "${1:-}" = "--with-node" ] && WITH_NODE=1
@@ -109,6 +109,8 @@ line "3. 校验包名是否存在（避免 apt install 中途失败）"
 add_pkg build-essential
 add_pkg qmake6
 add_pkg qt6-base-dev
+add_pkg libgl-dev
+add_pkg fonts-noto-cjk
 add_pkg libqt6charts6-dev qt6-charts-dev      # 易错：jammy 上正确名是 libqt6charts6-dev
 add_pkg qt6-webengine-dev
 add_pkg libqt6webenginecore6-bin              # WebEngine 渲染进程，dev 包不自动带
@@ -118,8 +120,9 @@ add_pkg python3
 [ "$WITH_NODE" = "1" ] && add_pkg nodejs
 
 if [ "${#FAILED_RESOLVE[@]}" -gt 0 ]; then
-  err "以下包名在软件源中不存在，已跳过（请核对发行版与仓库配置）："
+  err "以下包名在软件源中不存在，已停止安装（请核对发行版与仓库配置）："
   printf '    - %s\n' "${FAILED_RESOLVE[@]}"
+  exit 1
 fi
 
 line "4. 待安装清单"
@@ -133,6 +136,7 @@ if sudo apt-get install -y "${FINAL_PKGS[@]}"; then
   ok "安装完成"
 else
   err "安装过程中出现错误，请根据上方 apt 输出处理"
+  exit 1
 fi
 
 # ---------------------------------------------------------------------------
@@ -160,6 +164,8 @@ check "Qt6 SQLite 驱动 /usr/lib/$MULTIARCH/qt6/plugins/sqldrivers/libqsqlite.s
 
 check "Qt6 Charts 运行库"        test -f "/usr/lib/$MULTIARCH/libQt6Charts.so.6"
 check "Qt6 WebEngineWidgets 运行库" test -f "/usr/lib/$MULTIARCH/libQt6WebEngineWidgets.so.6"
+check "OpenGL 开发头文件" test -f "/usr/include/GL/gl.h"
+check "中文界面字体" test -f "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
 
 command -v sqlite3 >/dev/null 2>&1 && ok "sqlite3 $(sqlite3 --version | awk '{print $1}')" \
                                     || { err "sqlite3 缺失（注意不是 sqlite）"; FAILED=$((FAILED+1)); }
@@ -180,6 +186,7 @@ else
   printf '  - WebEngine 渲染进程缺失 -> 用户端弹不出来，报 Could not find QtWebEngineProcess\n'
   printf '  - SQLite 驱动缺失        -> 服务端报 QSQLITE driver not loaded\n'
   printf '  - Charts 运行库缺失      -> 管理端图表空白\n'
+  exit 1
 fi
 
 printf "\n${DIM}虚拟机提示：若用户端能启动但地图区域白屏，在 scripts/run_demo.sh 中\n"

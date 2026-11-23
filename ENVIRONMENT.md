@@ -1,36 +1,35 @@
-环境准备
+# 环境说明
 
-适用范围：Ubuntu 22.04 LTS（jammy）、Qt 6.2.4、GCC 11、x86_64。
-包名说明：下表所有包名均已在 \[packages.ubuntu.com (jammy)](https://packages.ubuntu.com/jammy/) 逐条核对，请勿凭 Qt 官方文档或其他发行版的习惯改写。
+目标为Ubuntu22.04 LTS（jammy）x86_64、Qt6.2.4、GCC11、qmake6。桌面程序需要图形会话；API测试可无图形运行。本轮不承诺Windows原生Qt工具链兼容。
 
-一键安装
+## 安装
 
-推荐用项目根目录随附的 `setup\_env.sh`：它会在安装**之前**逐个用 `apt-cache` 校验包名，把不存在的包名提前拦下来，并在装完后逐项验证（而不是等 `apt install` 中途报错，或者等运行时才崩）。
+```bash
+bash setup_env.sh
+# 可选Node.js，仅用于JS语法检查
+bash setup_env.sh --with-node
+```
 
-bash
-chmod +x setup\_env.sh
-bash setup\_env.sh                # 安装必需依赖
-bash setup\_env.sh --with-node    # 额外装 nodejs（手机 PWA 脚本语法检查用，可选）
+手工等价依赖：
 
-
-也可以手工执行等价命令：
-
-bash
-sudo add-apt-repository universe        # 本项目的 Qt6 包全部位于 universe 仓库
+```bash
+sudo add-apt-repository universe
 sudo apt update
-sudo apt install -y 
-  build-essential 
-  qmake6 
-  qt6-base-dev 
-  libqt6charts6-dev 
-  qt6-webengine-dev 
-  libqt6webenginecore6-bin 
-  libqt6sql6-sqlite 
-  sqlite3 
-  python3
+sudo apt install -y \
+  build-essential libgl-dev fonts-noto-cjk qmake6 qt6-base-dev \
+  libqt6charts6-dev qt6-webengine-dev libqt6webenginecore6-bin \
+  libqt6sql6-sqlite sqlite3 python3
+```
 
+libgl-dev提供QtCharts包含的GL/gl.h；中文字体保证最小环境中的中文可读。安装脚本检查包解析和实际工具，失败应非零退出。实际版本用 `qmake6 -query QT_VERSION` 与 `g++ --version` 记录。
 
-可选（用于手机 PWA 脚本的 `node --check web/mobile/app.js` 与 `node --check web/mobile/sw.js` 语法检查）：
+## 构建与路径
 
-bash
-sudo apt install -y nodejs
+```bash
+bash scripts/build_qmake.sh
+EVCHARGE_BUILD_DIR="$HOME/evcharge-build" bash scripts/build_qmake.sh
+```
+
+run/stop/test传入同一EVCHARGE_BUILD_DIR。默认build-qmake/bin中为charge_server、charge_user、charge_admin，shared为静态库。
+
+data、logs、qa和构建文件不纳入Git；忽略规则不是备份，个人SQLite应单独保护。完整流程见 [复现说明](docs/REPRODUCIBILITY.md)，实测见 [验证记录](docs/VALIDATION.md)。

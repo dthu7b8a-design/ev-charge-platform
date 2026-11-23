@@ -1,0 +1,9 @@
+/build-qmake/
+/data/
+/logs/
+/qa/
+*.pro.user
+*.pro.user.*
+*.autosave
+__pycache__/
+*.py[cod]

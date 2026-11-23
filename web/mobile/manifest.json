@@ -1,1 +1,1 @@
-{"name":"充电无忧","short_name":"充电无忧","start_url":"/","display":"standalone","background_color":"#111315","theme_color":"#111315","description":"跨 Android 与 iOS 的电动汽车充电服务客户端"}
+{"name":"充电无忧","short_name":"充电无忧","start_url":"/mobile/","scope":"/mobile/","display":"standalone","background_color":"#111315","theme_color":"#111315","description":"跨 Android 与 iOS 的电动汽车充电服务客户端"}

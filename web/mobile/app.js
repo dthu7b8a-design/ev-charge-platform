@@ -233,7 +233,7 @@ $('#saveProfile').onclick = async () => {
 window.addEventListener('online', () => $('#network').textContent = '在线');
 window.addEventListener('offline', () => $('#network').textContent = '离线');
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-  navigator.serviceWorker.register('./sw.js');
+  navigator.serviceWorker.register('/mobile/sw.js');
 }
 if (location.protocol === 'file:') {
   $('#previewNotice').classList.remove('hidden');
