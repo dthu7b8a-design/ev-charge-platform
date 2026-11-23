@@ -5,7 +5,7 @@
 目标为Ubuntu22.04 x86_64、Qt6.2.4、GCC11，桌面程序需要图形会话或WSLg；仅服务器/API可无图形运行。不需要外部数据集和模型。依赖见 [ENVIRONMENT](../ENVIRONMENT.md)。
 
 ```bash
-git clone https://github.com/dthu7b8a-design/ev-charge-platform.git
+git clone --branch cleanup/evcharge-audit-20261123 https://github.com/dthu7b8a-design/ev-charge-platform.git
 cd ev-charge-platform
 bash setup_env.sh
 qmake6 -query QT_VERSION
@@ -13,7 +13,7 @@ g++ --version
 bash scripts/build_qmake.sh
 ```
 
-正式推送前，整理版只存在本地分支；远程main不自动包含尚未发布的改动。
+整理版位于`cleanup/evcharge-audit-20261123`，见[PR #1](https://github.com/dthu7b8a-design/ev-charge-platform/pull/1)；尚未合并main，请按上文显式克隆该分支。
 
 ## 2. 桌面和手机演示
 
