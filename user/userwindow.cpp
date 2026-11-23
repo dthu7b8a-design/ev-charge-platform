@@ -508,11 +508,8 @@ void UserWindow::loadStations() {
             m_stations->setRowCount(m_stationRows.size());
             for (int i = 0; i < m_stationRows.size(); ++i) {
                 const auto s = m_stationRows.at(i).toObject();
-                const QString marker = s.value(QStringLiteral("recommended")).toBool()
-                                           ? QStringLiteral("★ ")
-                                           : QString();
                 const QStringList values{
-                    marker + s.value(QStringLiteral("name")).toString(),
+                    s.value(QStringLiteral("name")).toString(),
                     QStringLiteral("¥%1").arg(s.value(QStringLiteral("price")).toDouble(), 0, 'f',
                                               2),
                     QStringLiteral("%1/%2")
